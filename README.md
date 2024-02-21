@@ -1,6 +1,6 @@
 # ST-SampleNet
 
-# Spatially Constrained Transformer with Dynamic Region Sampling for Efficient Spatio-Temporal Modeling
+# ST-SampleNet: A Spatially Constrained Transformer with Efficient Global Relation Modelling
 
 Necessary code for the paper:
 
