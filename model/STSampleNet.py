@@ -100,7 +100,6 @@ class MultiHeadAttention(nn.Module):
 
     def __init__(self, n_head, dim_feat):
         super(MultiHeadAttention, self).__init__()
-        #assert embed_dim % n_head == 0
 
         self.dim_head = dim_feat // n_head
         self.dim_feat = dim_feat
@@ -121,7 +120,6 @@ class MultiHeadAttention(nn.Module):
         x = torch.cat(x, dim=-1)
         score = torch.stack(score, dim=1)
         return self.linear(x), score
-
 
 
 class EncoderLayer(nn.Module):
@@ -147,7 +145,6 @@ class EncoderLayer(nn.Module):
         ]))
 
     def forward(self, X):
-        # x = (batch, seq_len, embed_dim) (64, 9, 192)
         tmp = X
         X, score = self.multi_head_attention(q=X, k=X, v=X) # self attention
         X = self.layer_norm(tmp + self.dropout_1(X))
@@ -157,6 +154,7 @@ class EncoderLayer(nn.Module):
         X = self.layer_norm(tmp + self.dropout_2(X))
 
         return X, score
+
 
 class Encoder(nn.Module):
 
@@ -174,8 +172,6 @@ class Encoder(nn.Module):
             X, sc = layer(X)
             score.append(sc)
         score = torch.stack(score, dim=1)
-        #print(score.shape)
-        #exit()
         return X, score
 
 
@@ -235,6 +231,7 @@ class TemporalPositionEmbedding(nn.Module):
 
         return x
 
+
 class PositionEmbedding(nn.Module):
 
     def __init__(self, seq_len, dim_embed=512, device=None):
@@ -255,9 +252,10 @@ class PositionEmbedding(nn.Module):
 
 class SpatialPositionEmbedding(nn.Module):
 
-    def __init__(self, embed_dim=512, hirerachy_ratio=(0.5, 0.3, 0.2), device=None):
+    def __init__(self, embed_dim=512, hirerachy_ratio=(0.5, 0.3, 0.2), city='hannover', device=None):
         super(SpatialPositionEmbedding, self).__init__()
         self.device = device
+        self.city = city
         self.grid_geohash_dict, self.vocab_size = self.create_vocabulary()
 
         if round(sum(hirerachy_ratio)) != 1:
@@ -272,7 +270,7 @@ class SpatialPositionEmbedding(nn.Module):
 
     def create_vocabulary(self):
 
-        f_name = '/data/shared/sao/ST-SampleNet/data/hannover_geohash.pkl'
+        f_name = '/data/shared/sao/ST-SampleNet/data/' + self.city +'_geohash.pkl'
         with open(f_name, 'rb') as f:
             grid_geohash = pickle.load(f)
 
@@ -302,19 +300,15 @@ class SpatialPositionEmbedding(nn.Module):
             for i, val in enumerate(v):
                 grid_geohash_to_number[k].append(geohash_to_number[i][val])
 
-        #print(grid_geohash_to_number)
         return grid_geohash_to_number, len_sets
 
-
     def forward(self, x):
-        #print(x.shape)
         grid_pos = torch.arange(x.size(1), device=self.device)
         grid_pos = torch.stack([torch.tensor(self.grid_geohash_dict[key.item()], device=self.device) for key in grid_pos])
         grid_pos = grid_pos.unsqueeze(0).expand(x.size(0), x.size(1), -1)
-        #print(grid_pos.shape)
+
         embed_levels = [embed(grid_pos[:, :, i]) for i, embed in enumerate(self.embed_levels)]
         embed = torch.cat(embed_levels, dim=-1)
-        #print(embed.shape)
         return x + embed
 
 
@@ -337,11 +331,10 @@ class RegionSampler(nn.Module):
             nn.Linear(dim_in, dim_in // 4),
             nn.GELU(),
             nn.Linear(dim_in // 4, 2),
-            nn.LogSoftmax(dim=-1)
+            nn.Softmax(dim=-1)
         )
 
     def forward(self, x):
-        #print(x.shape, self.k)
         x = self.in_fc(x)
         _, _, R, F = x.size()
         x_local = x[:, :, :, :(F // 2)]
@@ -353,7 +346,6 @@ class RegionSampler(nn.Module):
         x = x[:, :, :, 1].reshape(x.size(0), x.size(1), -1)
 
         if self.training:
-
             prob = self.sampler(x)
             _, top_idx = torch.topk(prob, k=self.k, largest=True)
         else:
@@ -366,7 +358,7 @@ class STSampleNet(nn.Module):
 
     def __init__(self, len_conf=(4, 3, 2), n_c=1, n_poi=10, embed_dim=32, map_w=22, map_h=17, dim_ts_feat=8,
                  n_head_spatial=4, n_head_temporal=4, n_layer_spatial=4, n_layer_temporal=4, dropout=0.1,
-                 hirerachy_ratio=(0.3, 0.3, 0.2, 0.2), region_keep_rate=0.8,  tau=1.0, teacher=False, device=None):
+                 hirerachy_ratio=(0.3, 0.3, 0.2, 0.2), region_keep_rate=0.8,  tau=1.0, city='hannover', teacher=False, device=None):
         super(STSampleNet, self).__init__()
 
         self.len_conf = len_conf
@@ -380,6 +372,7 @@ class STSampleNet(nn.Module):
         self.spatial_n_head = n_head_spatial
         self.temporal_n_head = n_head_temporal
         self.dim_feat_prop = hirerachy_ratio
+        self.city = city
         self.teacher = teacher
         self.device = device
 
@@ -406,7 +399,7 @@ class STSampleNet(nn.Module):
             self.region_sampler = RegionSampler(k=self.k_region, tau=tau, dim_in=embed_dim, dim_out=self.map_w * self.map_h)
 
         self.cls_token_region = nn.Parameter(torch.zeros(1, self.n_time, 1, embed_dim))
-        self.spatial_pos_embed = SpatialPositionEmbedding(embed_dim=embed_dim, hirerachy_ratio=hirerachy_ratio,
+        self.spatial_pos_embed = SpatialPositionEmbedding(embed_dim=embed_dim, hirerachy_ratio=hirerachy_ratio, city=self.city,
                                                           device=device)
         #self.spatial_pos_embed = PositionEmbedding(seq_len=map_h * map_w, dim_embed=embed_dim, device=device)
         self.spatial_encoder = Encoder(embed_dim=embed_dim, n_head=n_head_spatial, dim_ffn=3 * embed_dim,
@@ -421,7 +414,6 @@ class STSampleNet(nn.Module):
 
     def feature_encoder(self, X, ts, X_poi):
 
-
         X = torch.stack([self.local_feature_encoder(X[:, t, :, :, :]) for t in range(X.size(1))], dim=1)
         X_poi = self.poi_feature_encoder(X_poi)
         ts = self.ts_encoder(ts)
@@ -430,15 +422,7 @@ class STSampleNet(nn.Module):
 
     def forward(self, X, ts, X_poi):
 
-        #print(x.shape, x_poi.shape, ts_c.shape)
-
-        #X = torch.cat((X_c, X_p, X_t), dim=1)
-        #ts = torch.cat((ts_c, ts_p, ts_t), dim=1)
-
         X, ts, X_poi = self.feature_encoder(X, ts, X_poi)
-
-        #print(X.shape, X_poi.shape, ts.shape, ts_y.shape)
-        #exit()
 
         X = torch.permute(X, (0, 1, 3, 4, 2))
         X_poi_ = torch.permute(X_poi, (0, 2, 3, 1)).unsqueeze(1).expand(-1, sum(self.len_conf), -1, -1, -1)
@@ -447,8 +431,6 @@ class STSampleNet(nn.Module):
         X = X.view(-1, X.size(1), self.map_w * self.map_h, self.feat_dim)  # (b, c, h*w, f)
         X_poi_ = X_poi_.view(-1, X_poi_.size(1), self.map_w * self.map_h, self.feat_dim)  # (b, c, h*w, f)
         ts_ = ts_.view(-1, ts_.size(1), self.map_w * self.map_h, self.feat_dim)  # (b, c, h*w, f)
-
-        #print(X.shape, X_poi_.shape, ts_.shape)
 
         # Apply spatial position encoding in each timestamp
         X = torch.stack([self.dropout(self.spatial_pos_embed(X[:, t, :, :])) for t in range(X.size(1))], dim=1)
@@ -461,13 +443,12 @@ class STSampleNet(nn.Module):
         if not self.teacher:
             Z_poi_time = X_poi_ + ts_
             keep_idx = self.region_sampler(Z_poi_time)
-            keep_idx = keep_idx.unsqueeze(-1).expand(-1, -1, -1, Z.size(-1))
 
+            keep_idx = keep_idx.unsqueeze(-1).expand(-1, -1, -1, Z.size(-1))
             Z_keep = Z.gather(dim=-2, index=keep_idx)
             Z = torch.cat((cls_token_region, Z_keep), dim=-2)
         else:
             Z = torch.cat((cls_token_region, Z), dim=-2)
-
 
         Z_tmp, score_spatial = [], []
         for t in range(Z.size(1)):
@@ -482,7 +463,6 @@ class STSampleNet(nn.Module):
         Z_t = Z[:, :, 0, :]
 
         Z_t_ts = Z_t + ts
-
         Z_t_ts = self.temporal_pos_embed(Z_t_ts)
 
         cls_token_temp = self.cls_token_time.expand(Z_t_ts.shape[0], -1, -1)
@@ -499,11 +479,10 @@ class STSampleNet(nn.Module):
 if __name__ == '__main__':
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #print('device', device)
     model = STSampleNet(len_conf=(4, 3, 2), n_c=3, embed_dim=128, map_w=20, map_h=20,
                         dim_ts_feat=10, n_head_spatial=3, n_head_temporal=3,
                         n_layer_spatial=2, n_layer_temporal=2, hirerachy_ratio=(0.3, 0.3, 0.2, 0.2),
-                        region_keep_rate=0.8, tau=1.0, teacher=True, device=device)
+                        region_keep_rate=0.8, tau=1.0, city='hannover', teacher=False, device=device)
     #print(model)
     model.to(device)
 
