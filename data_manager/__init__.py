@@ -33,7 +33,6 @@ def nyc_f_name(config):
                          config['data']['city'] + '_dropoff_' + str(config['grid']['size']) +
                          '_' + str(config['quantize']['freq'] + '.pkl'))
 
-
     return f_pickup, f_dropoff
 
 

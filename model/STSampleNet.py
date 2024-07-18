@@ -252,10 +252,11 @@ class PositionEmbedding(nn.Module):
 
 class SpatialPositionEmbedding(nn.Module):
 
-    def __init__(self, embed_dim=512, hirerachy_ratio=(0.5, 0.3, 0.2), city='hannover', device=None):
+    def __init__(self, embed_dim=512, hirerachy_ratio=(0.5, 0.3, 0.2), city='hannover', device=None, dir=''):
         super(SpatialPositionEmbedding, self).__init__()
         self.device = device
         self.city = city
+        self.dir = dir
         self.grid_geohash_dict, self.vocab_size = self.create_vocabulary()
 
         if round(sum(hirerachy_ratio)) != 1:
@@ -270,7 +271,7 @@ class SpatialPositionEmbedding(nn.Module):
 
     def create_vocabulary(self):
 
-        f_name = '/data/shared/sao/ST-SampleNet/data/' + self.city +'_geohash.pkl'
+        f_name = self.dir + self.city +'_geohash.pkl'
         with open(f_name, 'rb') as f:
             grid_geohash = pickle.load(f)
 
@@ -358,7 +359,8 @@ class STSampleNet(nn.Module):
 
     def __init__(self, len_conf=(4, 3, 2), n_c=1, n_poi=10, embed_dim=32, map_w=22, map_h=17, dim_ts_feat=8,
                  n_head_spatial=4, n_head_temporal=4, n_layer_spatial=4, n_layer_temporal=4, dropout=0.1,
-                 hirerachy_ratio=(0.3, 0.3, 0.2, 0.2), region_keep_rate=0.8,  tau=1.0, city='hannover', teacher=False, device=None):
+                 hirerachy_ratio=(0.3, 0.3, 0.2, 0.2), region_keep_rate=0.8,  tau=1.0, city='hannover',
+                 teacher=False, device=None, dir=''):
         super(STSampleNet, self).__init__()
 
         self.len_conf = len_conf
@@ -366,6 +368,7 @@ class STSampleNet(nn.Module):
         self.map_w = map_w
         self.map_h = map_h
         self.n_poi = n_poi
+        self.dir = dir
         self.n_layer_spatial = n_layer_spatial
         self.n_layer_temporal = n_layer_temporal
         self.ts_feat_dim = dim_ts_feat
@@ -400,7 +403,7 @@ class STSampleNet(nn.Module):
 
         self.cls_token_region = nn.Parameter(torch.zeros(1, self.n_time, 1, embed_dim))
         self.spatial_pos_embed = SpatialPositionEmbedding(embed_dim=embed_dim, hirerachy_ratio=hirerachy_ratio, city=self.city,
-                                                          device=device)
+                                                          device=device, dir=self.dir)
         #self.spatial_pos_embed = PositionEmbedding(seq_len=map_h * map_w, dim_embed=embed_dim, device=device)
         self.spatial_encoder = Encoder(embed_dim=embed_dim, n_head=n_head_spatial, dim_ffn=3 * embed_dim,
                                        n_layer=n_layer_spatial, dropout=dropout)

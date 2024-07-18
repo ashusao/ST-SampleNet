@@ -1,8 +1,6 @@
 import configparser
 
-from utils.preprocess_nyc_taxi import pre_process_nyc
-from utils.poi import extract_and_process_poi
-
+from utils.scpe import generate_scpe
 from train import train
 
 
@@ -12,15 +10,11 @@ if __name__=='__main__':
     config = configparser.ConfigParser()
     config.read('config.ini')
 
-    pre_process_flag = config.getboolean('general', 'pre_process')
+    scpe_flag = config.getboolean('general', 'process_scpe')
     train_flag = config.getboolean('general', 'train')
-    process_poi = config.getboolean('general', 'process_poi')
 
-    if process_poi:
-        extract_and_process_poi(config)
-
-    if pre_process_flag:
-        pre_process_nyc(config)
+    if scpe_flag:
+        generate_scpe(config)
 
     if train_flag:
         train(config)

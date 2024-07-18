@@ -1,6 +1,4 @@
 import os
-import time
-from datetime import datetime
 import numpy as np
 
 import torch
@@ -15,6 +13,7 @@ from model.STSampleNet import STSampleNet
 
 from utils.early_stopping import EarlyStopping
 from utils.eval import valid
+
 
 def train(config):
 
@@ -53,7 +52,6 @@ def train(config):
     TS_c = meta[0].type(torch.FloatTensor).to(device)
     TS_p = meta[1].type(torch.FloatTensor).to(device)
     TS_t = meta[2].type(torch.FloatTensor).to(device)
-    TS_Y = meta[3][:, :8].type(torch.FloatTensor).to(device)
     pois = meta[4].type(torch.FloatTensor).to(device)
     TS_Y_str = meta[5]
 
@@ -70,7 +68,6 @@ def train(config):
 
     l1, l2, l3, l4 = float(config['stsamplenet']['prop_l1']), float(config['stsamplenet']['prop_l2']), \
                      float(config['stsamplenet']['prop_l3']), float(config['stsamplenet']['prop_l4'])
-
     region_keep_rate= float(config['stsamplenet']['region_keep_rate'])
     tau = float(config['stsamplenet']['tau'])
 
@@ -79,7 +76,7 @@ def train(config):
                           dim_ts_feat=10, n_head_spatial=n_head_spatial, n_head_temporal=n_head_temporal,
                           n_layer_spatial=n_layer_spatial, n_layer_temporal=n_layer_temporal,
                           dropout=0.1, hirerachy_ratio=(l1, l2, l3, l4), region_keep_rate=region_keep_rate,
-                          tau=tau, city=city, teacher=True, device=device)
+                          tau=tau, city=city, teacher=True, device=device, dir=config['data']['dir'])
     teacher.to(device)
 
     if train_teacher:
@@ -89,7 +86,7 @@ def train(config):
                             dim_ts_feat=10, n_head_spatial=n_head_spatial, n_head_temporal=n_head_temporal,
                             n_layer_spatial=n_layer_spatial, n_layer_temporal=n_layer_temporal,
                             dropout=0.1, hirerachy_ratio=(l1, l2, l3, l4), region_keep_rate=region_keep_rate,
-                            tau=tau, city=city, teacher=False, device=device)
+                            tau=tau, city=city, teacher=False, device=device, dir=config['data']['dir'])
         model.to(device)
     X = torch.cat((X_c, X_p, X_t), dim=1)
     TS = torch.cat((TS_c, TS_p, TS_t), dim=1)
@@ -120,7 +117,6 @@ def train(config):
 
     print('==== Starting Training ====')
 
-    start = time.time()
     for e in range(n_epoch):
         model.train()
         for i, (X, Y, meta) in enumerate(train_generator):
@@ -131,9 +127,7 @@ def train(config):
             TS_c = meta[0].type(torch.FloatTensor).to(device)
             TS_p = meta[1].type(torch.FloatTensor).to(device)
             TS_t = meta[2].type(torch.FloatTensor).to(device)
-            TS_Y = meta[3][:, :8].type(torch.FloatTensor).to(device)
             pois = meta[4].type(torch.FloatTensor).to(device)
-
 
             Y = Y.type(torch.FloatTensor).to(device)
 
@@ -162,7 +156,7 @@ def train(config):
 
         v_mse_PU, v_rmse_PU, v_mae_PU, \
         v_mse_DO, v_rmse_DO, v_mae_DO = \
-            valid(config, model, val_generator, device, train_dataset)
+            valid(model, val_generator, device, train_dataset)
 
         print('Epoch [{}/{}], PU Val MSE: {:.4f} RMSE: {:.4f} MAE: {:.4f} '
               .format(e + 1, n_epoch, v_mse_PU, v_rmse_PU, v_mae_PU))
@@ -186,11 +180,7 @@ def train(config):
 
             print(chkpt_dir + '/%08d_model.pth' % (e) +' saved!')
 
-    stop = time.time()
-    train_time = round(((stop - start) / 60.0), 2)
-    exp_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    print('==== Training Finished ====', exp_time)
+    print('==== Training Finished ====')
 
     # create generators
     test_dataset = STDataset(config=config, mode='test')
@@ -204,11 +194,11 @@ def train(config):
 
     train_mse_PU, train_rmse_PU, train_mae_PU, \
     train_mse_DO, train_rmse_DO, train_mae_DO = \
-        valid(config, model, train_generator, device, train_dataset)
+        valid(model, train_generator, device, train_dataset)
 
     test_mse_PU, test_rmse_PU, test_mae_PU, \
     test_mse_DO, test_rmse_DO, test_mae_DO = \
-        valid(config, model, test_generator, device, test_dataset)
+        valid(model, test_generator, device, test_dataset)
 
     print(
         'PU Train MSE: {:.4f} Train RMSE: {:.4f} Train MAE: {:.4f} Test MSE: {:.4f} Test RMSE: {:.4f} Test MAE: {:.4f}'

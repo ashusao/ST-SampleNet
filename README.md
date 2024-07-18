@@ -5,26 +5,28 @@
 ## Description
 This repository is the implementation of the project "Spatially Constrained Transformer with Efficient Global Relation Modelling" by Ashutosh Sao and Simon Gottschalk. 
 
-![MetaCitta](images/Architecture.png)
+![ST-SampleNet](images/Architecture.png)
 
 ## Installation
-To install the requirements
+To install all dependencies
 ```bash
-pip install -r requirements.txt
+conda create -n stsamplenet
+conda activate stsamplenet
+bash install.sh
 ```
+
+# Folder Structure 
+Input data: `tmp/data/`
+
+Model location: `tmp/model/`
+
 
 # Training & Evaluation
-1. To train a model on NYC Dataset, download and save the raw data at a specified location `<location>`. 
+Run teacher model containing all regions first.
 
-2. Set the `dir` under `[data]` in `confing.ini` to the raw data location `<location>`. 
-
-3. Set the `dir` under `[model]` in `confing.ini` to the location where you want to save the trained model.
-
-4. Set the save path to `location` in the jupyter notebook `SCPE.ipynb` and run. 
-It ll generate the geohash dictionary used by the model 
-
-5. Finally
 Run:
 ```bash
-python main.py
+python3 main.py
 ```
+To train region pruned model set the `region_keep_rate` and `train_teacher` flag in `config.ini` 
+and train the model again using the command above to see the effect of pruning.

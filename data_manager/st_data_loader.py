@@ -21,7 +21,6 @@ def load_XY(config, T, len_test):
     st_series = STSeries(config=config, start_ts=start_ts, end_ts=end_ts,
                          pickup=norm_pickup, dropoff=norm_dropoff, T=T)
 
-
     XC = []
     XP = []
     XT = []

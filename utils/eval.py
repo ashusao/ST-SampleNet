@@ -9,10 +9,8 @@ def compute_errors(y_true, y_pred):
     return mse.item(), rmse.item(), mae.item()
 
 
-def valid(config, model, val_generator, device, dataset=None):
+def valid(model, val_generator, device, dataset=None):
     model.eval()
-
-    city = config['data']['city']
 
     mean_mse_loss_pickup = []
     mean_mae_loss_pickup = []

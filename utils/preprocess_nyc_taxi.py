@@ -37,22 +37,23 @@ def get_lat_lon(taxi_zone):
 
 
 def load_data():
-    df_07 = pd.read_parquet("/data/shared/sao/NYCTaxi/yellow_tripdata_2023-07.parquet",
+    dir = config['data']['dir']
+    df_07 = pd.read_parquet( dir + "yellow_tripdata_2023-07.parquet",
                             columns=['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
                                      'PULocationID', 'DOLocationID'])
-    df_08 = pd.read_parquet("/data/shared/sao/NYCTaxi/yellow_tripdata_2023-08.parquet",
+    df_08 = pd.read_parquet(dir + "yellow_tripdata_2023-08.parquet",
                             columns=['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
                                      'PULocationID', 'DOLocationID'])
-    df_09 = pd.read_parquet("/data/shared/sao/NYCTaxi/yellow_tripdata_2023-09.parquet",
+    df_09 = pd.read_parquet(dir + "yellow_tripdata_2023-09.parquet",
                             columns=['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
                                      'PULocationID', 'DOLocationID'])
-    df_10 = pd.read_parquet("/data/shared/sao/NYCTaxi/yellow_tripdata_2023-10.parquet",
+    df_10 = pd.read_parquet(dir + "yellow_tripdata_2023-10.parquet",
                             columns=['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
                                      'PULocationID', 'DOLocationID'])
-    df_11 = pd.read_parquet("/data/shared/sao/NYCTaxi/yellow_tripdata_2023-11.parquet",
+    df_11 = pd.read_parquet(dir + "yellow_tripdata_2023-11.parquet",
                             columns=['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
                                      'PULocationID', 'DOLocationID'])
-    df_12 = pd.read_parquet("/data/shared/sao/NYCTaxi/yellow_tripdata_2023-12.parquet",
+    df_12 = pd.read_parquet(dir + "yellow_tripdata_2023-12.parquet",
                             columns=['VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
                                      'PULocationID', 'DOLocationID'])
     df = pd.concat([df_07, df_08, df_09, df_10, df_11, df_12], ignore_index=True)
@@ -139,7 +140,7 @@ def pre_process_nyc(config):
         pickup_counts[key] = np.zeros((grid_height, grid_width), dtype=int)
         dropoff_counts[key] = np.zeros((grid_height, grid_width), dtype=int)
 
-    df = load_data()
+    df = load_data(config)
 
     workers = partial(process_dataset, df=df, grid_width=grid_width, grid_height=grid_height, grids=grids)
 
