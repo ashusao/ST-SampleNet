@@ -3,7 +3,7 @@
 # Spatially Constrained Transformer with Efficient Global Relation Modelling
 
 ## Description
-This repository is the implementation of the project "Spatially Constrained Transformer with Efficient Global Relation Modelling" by Ashutosh Sao and Simon Gottschalk. 
+This repository is the implementation of the paper "**Spatially Constrained Transformer with Efficient Global Relation Modelling**" by Ashutosh Sao and Simon Gottschalk. 
 
 ![ST-SampleNet](images/Architecture.png)
 
@@ -18,8 +18,7 @@ bash install.sh
 # Folder Structure 
 Input data: `tmp/data/`
 
-Model location: `tmp/model/`
-
+Saved model: `tmp/model/`
 
 # Training & Evaluation
 Run teacher model containing all regions first.
