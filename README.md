@@ -1,9 +1,9 @@
 # ST-SampleNet
 
-# Spatially Constrained Transformer with Efficient Global Relation Modelling
+# Spatially Constrained Transformer with Efficient Global Relation Modelling for Spatio-Temporal Prediction
 
 ## Description
-This repository is the implementation of the paper "**Spatially Constrained Transformer with Efficient Global Relation Modelling**" by Ashutosh Sao and Simon Gottschalk. 
+This repository is the implementation of the paper "**Spatially Constrained Transformer with Efficient Global Relation Modelling for Spatio-Temporal Prediction**" by Ashutosh Sao and Simon Gottschalk. 
 
 ![ST-SampleNet](images/Architecture.png)
 
